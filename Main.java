@@ -24,16 +24,22 @@ import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 
 import java.awt.Font;
 
+import javax.swing.AbstractButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+
+import java.awt.FlowLayout;
 
 public class Main extends JFrame {
 
@@ -41,10 +47,14 @@ public class Main extends JFrame {
 	private JTextArea txtMain;
 	private JButton btnGet;
 	private JComboBox cbResolution;
-	private JComboBox cbFiletype;
-	private JComboBox cbEquation;
-	private JCheckBox chckbxBest;
-	private JScrollPane scrollPane_1;
+	private JScrollPane spMain;
+	private JPanel tabSimple;
+	private JPanel tabAdvanced;
+	private JComboBox cbFileType;
+	private JCheckBox chckbxBestVideo;
+	private JCheckBox chckbxBestAudio;
+	private JTabbedPane paneOptions;
+	private JCheckBox chckbxNumberFileNames;
 
 	/**
 	 * Launch the application.
@@ -74,48 +84,56 @@ public class Main extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 
-		btnGet = new JButton("Get");
-		btnGet.addActionListener(new GetHandler());
-
-		scrollPane_1 = new JScrollPane();
-		scrollPane_1.setBounds(10, 11, 414, 455);
-		contentPane.add(scrollPane_1);
+		spMain = new JScrollPane();
+		spMain.setBounds(10, 11, 414, 455);
+		contentPane.add(spMain);
 
 		txtMain = new JTextArea();
-		scrollPane_1.setViewportView(txtMain);
-		btnGet.setBounds(282, 500, 115, 38);
-		contentPane.add(btnGet);
+		spMain.setViewportView(txtMain);
+
+		paneOptions = new JTabbedPane(JTabbedPane.TOP);
+		paneOptions.setBounds(0, 468, 149, 96);
+		contentPane.add(paneOptions);
+
+		tabSimple = new JPanel();
+		paneOptions.addTab("Simple", null, tabSimple, null);
+		tabSimple.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
 		cbResolution = new JComboBox();
+		tabSimple.add(cbResolution);
 		cbResolution.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		cbResolution.setModel(new DefaultComboBoxModel(new String[] { "1080",
-				"720", "360" }));
-		cbResolution.setSelectedIndex(1);
-		cbResolution.setBounds(204, 492, 60, 50);
-		contentPane.add(cbResolution);
+		cbResolution.setModel(new DefaultComboBoxModel(new String[] { "720",
+				"360" }));
 
-		// cbFiletype = new JComboBox();
-		// cbFiletype.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		// cbFiletype.setModel(new DefaultComboBoxModel(new String[] { "mp4 ",
-		// "m4a ", "3gp ", "flv ", "webm" }));
-		// cbFiletype.setBounds(183, 501, 62, 31);
-		// contentPane.add(cbFiletype);
+		cbFileType = new JComboBox();
+		cbFileType.setFont(new Font("Tahoma", Font.PLAIN, 15));
+		cbFileType.setModel(new DefaultComboBoxModel(new String[] { "mp4",
+				"flv", "webm", "3gp", "m4a" }));
+		//cbFileType.setToolTipText("Leave blank for no preference.");
+		tabSimple.add(cbFileType);
 
-		chckbxBest = new JCheckBox("Best");
-		chckbxBest.setSelected(true);
-		chckbxBest.setBounds(10, 508, 54, 23);
-		contentPane.add(chckbxBest);
+		chckbxNumberFileNames = new JCheckBox("Number file names");
+		chckbxNumberFileNames.setSelected(true);
+		tabSimple.add(chckbxNumberFileNames);
 
-		cbEquation = new JComboBox();
-		cbEquation.setModel(new DefaultComboBoxModel(new String[] { "=", "<=",
-				">=" }));
-		cbEquation.setSelectedIndex(1);
-		cbEquation.setBounds(134, 494, 50, 50);
-		contentPane.add(cbEquation);
+		tabAdvanced = new JPanel();
+		paneOptions.addTab("Advanced", null, tabAdvanced, null);
+		tabAdvanced.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 
-		JLabel lblHeight = new JLabel("Height:");
-		lblHeight.setBounds(74, 503, 50, 32);
-		contentPane.add(lblHeight);
+		chckbxBestAudio = new JCheckBox("Best Audio");
+		chckbxBestAudio.addActionListener(new bestHandler());
+		chckbxBestAudio.setSelected(true);
+		tabAdvanced.add(chckbxBestAudio);
+
+		chckbxBestVideo = new JCheckBox("Best Video");
+		chckbxBestVideo.addActionListener(new bestHandler());
+		chckbxBestVideo.setSelected(true);
+		tabAdvanced.add(chckbxBestVideo);
+
+		btnGet = new JButton("Get");
+		btnGet.setBounds(159, 501, 116, 41);
+		contentPane.add(btnGet);
+		btnGet.addActionListener(new GetHandler());
 	}
 
 	private String Date() {
@@ -134,6 +152,18 @@ public class Main extends JFrame {
 		return new BufferedReader(new InputStreamReader(p.getErrorStream()));
 	}
 
+	class bestHandler implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			if (e.getSource() == chckbxBestAudio
+					&& !chckbxBestVideo.isSelected()) {
+				chckbxBestVideo.setSelected(true);
+			} else if (e.getSource() == chckbxBestVideo
+					&& !chckbxBestAudio.isSelected()) {
+				chckbxBestAudio.setSelected(true);
+			}
+		}
+	}
+
 	class GetHandler implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 
@@ -150,13 +180,20 @@ public class Main extends JFrame {
 
 			for (int i = 0; i < matrix.size(); i++) {
 				Runtime rt = Runtime.getRuntime();
+				String statment = "youtube-dl.exe --get-filename --get-url --get-format -f \"";
+				if (paneOptions.getSelectedIndex() == 0) {
+					statment += cbFileType.getSelectedItem() + "/[height"
+							+ "<=" + cbResolution.getSelectedItem() + "]";
+
+				} else if (paneOptions.getSelectedIndex() == 1) {
+					statment += getBest();
+					//System.out.println(statment);
+				}
 				try {
-					Process pr = rt
-							.exec("youtube-dl.exe -g -e --get-format -f \""
-									+ getBest() + "[height"
-									+ cbEquation.getSelectedItem() + ""
-									+ cbResolution.getSelectedItem()
-									+ "]/mp4\" " + matrix.get(i).toArray()[0]);
+					Process pr = rt.exec(statment
+							+ "\" -o \"%(title)s.%(ext)s\" "
+							+ matrix.get(i).toArray()[0]
+							+ " --restrict-filenames");
 					BufferedReader output = getOutput(pr);
 					BufferedReader error = getError(pr);
 					String ligne = "";
@@ -191,10 +228,12 @@ public class Main extends JFrame {
 									"youtube-dl.exe");
 							fos.getChannel().transferFrom(rbc, 0,
 									Long.MAX_VALUE);
-							JOptionPane.showMessageDialog(null, "Please relaunch program");
+							JOptionPane.showMessageDialog(null,
+									"Please relaunch program");
 							System.exit(0);
 						} catch (Exception e2) {
-							JOptionPane.showMessageDialog(null, "Could not download, shutting down.");
+							JOptionPane.showMessageDialog(null,
+									"Could not download, shutting down.");
 							System.exit(0);
 						}
 					} else {
@@ -204,7 +243,7 @@ public class Main extends JFrame {
 					e1.printStackTrace();
 				}
 			}
-			
+
 			if (matrix.size() > 0) {
 
 				htmlText = "<!DOCTYPE html>"
@@ -240,28 +279,75 @@ public class Main extends JFrame {
 						+ "\n<span class=\"gray\">"
 						+ "\nIf you do not have a download manger, you can click on the links below and download the videos one by one.<br/> "
 						+ "\nBut batch download becomes far easier if you have a download manager like DownThemAll.<br/>"
-						+ "\n</span>" + "</div>" + "<p/>" + "<div id=\"links\">"
+						+ "\n</span>"
+						+ "</div>"
+						+ "<p/>"
+						+ "<div id=\"links\">"
 						+ "\n<table border=\"1\" cellpadding=\"5px\">"
 						+ "\n<tr><th>S.No</th><th>Title</th><th>Quality</th></tr>";
 
 				for (int i = 0; i < matrix.size(); i++) {
+					if (paneOptions.getSelectedIndex() == 1
+							&& chckbxBestAudio.isSelected() == chckbxBestVideo
+									.isSelected()) {
 
-					htmlText += "\n<tr><td>" + (i + 1) + "</td><td><a href=\""
-							+ matrix.get(i).get(2).toString() + "&; codecs&title="
-							+ (i + 1) + " - "
-							+ matrix.get(i).get(1).toString().replace("&", "and")
-							+ "\">" + matrix.get(i).get(1).toString()
-							+ "</a></td><td><span class='"
-							+ getColor(matrix.get(i).get(3).toString()) + "'>" // dynamic
-																				// color
-																				// res
-							+ matrix.get(i).get(3).toString() + "</span></td></tr>"; // fix
-																						// res
+						htmlText += "\n<tr>"
+								+ "\n<td>"
+								+ (i + 1)
+								+ "</td>"
+								+ "\n<td>"
+								+ "\n<p><a href=\""
+								+ matrix.get(i).get(1).toString()
+								+ "\">"
+								+ matrix.get(i).get(3).toString()
+										.replace("_", " ")
+								+ "</a></p>\n"
+								+ "\n<p><a href=\""
+								+ matrix.get(i).get(2).toString()
+								+ "\">"
+								+ matrix.get(i)
+										.get(3)
+										.toString()
+										.replace("_", " ")
+										.replaceFirst(
+												"\\.(mp4|m4a|flv|3gp|webm)$",
+												"") + ".m4a</a></p>"
+								+ "\n</td>" + "\n<td><span class='"
+								+ getColor(matrix.get(i).get(4).toString())
+								+ "'>" + matrix.get(i).get(4).toString()
+								+ "</span></td>" + "\n</tr>";
+
+					} else {
+						htmlText += "\n<tr><td>"
+								+ (i + 1)
+								+ "</td><td><a href=\""
+								+ matrix.get(i).get(1).toString()
+								+ "&; codecs&title="
+								+ getNumbering(i)
+								+ matrix.get(i)
+										.get(2)
+										.toString()
+										.replace("_", " ")
+										.replaceFirst(
+												"\\.(mp4|m4a|flv|3gp|webm)$",
+												"")
+								+ "\">"
+								+ matrix.get(i).get(2).toString()
+										.replace("_", " ")
+								+ "</a></td><td><span class='"
+								+ getColor(matrix.get(i).get(3).toString())
+								+ "'>" + matrix.get(i).get(3).toString()
+								+ "</span></td></tr>";
+					}
+
 				}
 
-				htmlText += "</table>" + "</div>"
+				htmlText += "</table>"
+						+ "</div>"
 						+ "\n<br/><div class='center gray'>Link Generation Time: "
-						+ Date() + "<br/>Link Expiry Time: " + "~6 Hours"
+						+ Date()
+						+ "<br/>Link Expiry Time: "
+						+ "~6 Hours"
 						+ "\n</div><br/><hr size=\"1\" width=\"80%\"/><br/><br/>"
 						+ "\n</body>" + "</html>";
 
@@ -272,7 +358,7 @@ public class Main extends JFrame {
 				htmlText = "<!DOCTYPE html>"
 						+ "\n<html>"
 						+ "\n<head>"
-						+ "\n<title>BYTubeD Generated Links</title>"
+						+ "\n<title>YouTube-DL Generated Links</title>"
 						+ "\n<meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\">"
 						+ "\n<style>"
 						+ "\nbody      { font-family:Georgia,Ubuntu,Times,Sans; text-align:justify }"
@@ -292,7 +378,7 @@ public class Main extends JFrame {
 						+ "\n</head>"
 						+ "\n<body>"
 						+ "\n<div class=\"fullwidth center gray\">"
-						+ "\n<b>BYTubeD Invocation Timestamp:</b> "
+						+ "\n<b>YouTube-DL Invocation Timestamp:</b> "
 						+ Date()
 						+ "<br/>"
 						// +
@@ -318,6 +404,26 @@ public class Main extends JFrame {
 			}
 		}
 
+		private String getNumbering(int i) {
+			if (chckbxNumberFileNames.isSelected()) {
+				return (i + 1)	+ " - ";
+			}
+			return "";
+		}
+
+		private String getBest() {
+			boolean audio = chckbxBestAudio.isSelected();
+			boolean video = chckbxBestVideo.isSelected();
+
+			if (audio == video) {
+				return "bestvideo+bestaudio";
+			} else if (video) {
+				return "bestvideo";
+			}
+
+			return "bestaudio";
+		}
+
 		private void writeToFile(String file, String text) {
 			File f = new File(file);
 			try {
@@ -333,54 +439,37 @@ public class Main extends JFrame {
 
 		}
 
-		private String getBest() {
-			if (chckbxBest.isSelected()) {
-				return "best";
-			}
-			return "";
-		}
-
 		private String getColor(String res) {
-			int hight = Integer.parseInt(extractNumber(res));
+			String height = regexFind(res, "x\\d*")[0];
 
-			switch (hight) {
-			case 1080:
+			switch (height) {
+			case "x1080":
 				return "ruby";
-			case 720:
+			case "x720":
 				return "purple";
-			case 360:
+			case "x360":
 				return "green";
+			case "x240":
+				return "lightblue";
 			default:
 				return "black";
 			}
 		}
 
-		private String extractNumber(String res) {
-
-			String[] strs = res.split("x");
-			String str = "0";
-
-			if (strs.length > 1) {
-				str = strs[1];
+		private String[] regexFind(String string, String regex) {
+			Pattern MY_PATTERN = Pattern.compile(regex);
+			Matcher m = MY_PATTERN.matcher(string);
+			ArrayList<String> matches = new ArrayList<String>();
+			if (m.find()) {
+				do {
+					matches.add(m.group(0));
+				} while (m.find());
+			} else {
+				matches.add("");
 			}
 
-			if (str == null || str.isEmpty())
-				return "";
-
-			StringBuilder sb = new StringBuilder();
-			boolean found = false;
-			for (char c : str.toCharArray()) {
-				if (Character.isDigit(c)) {
-					sb.append(c);
-					found = true;
-				} else if (found) {
-					// If we already found a digit before and this char is not a
-					// digit, stop looping
-					break;
-				}
-			}
-
-			return sb.toString();
+			return matches.toArray(new String[matches.size()]);
 		}
+
 	}
 }
