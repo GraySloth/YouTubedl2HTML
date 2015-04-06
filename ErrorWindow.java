@@ -99,12 +99,12 @@ public class ErrorWindow extends JDialog {
 									Long.MAX_VALUE);
 							fos.close();
 							JOptionPane.showMessageDialog(null,
-									"Downlaod was successful.");
-							dispose();
+									"Download was successful.");
 						} catch (Exception e2) {
 							JOptionPane.showMessageDialog(null,
 									"Could not download.");
 						}
+						dispose();
 					}
 				});
 				btnDownload.setActionCommand("Download");
