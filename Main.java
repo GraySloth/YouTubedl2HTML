@@ -14,13 +14,9 @@ import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,14 +28,13 @@ import javax.swing.DefaultComboBoxModel;
 
 import java.awt.Font;
 
-import javax.swing.AbstractButton;
 import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
+import javax.swing.JDialog;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
 import java.awt.FlowLayout;
+import java.awt.SystemColor;
 
 public class Main extends JFrame {
 
@@ -55,6 +50,8 @@ public class Main extends JFrame {
 	private JCheckBox chckbxBestAudio;
 	private JTabbedPane paneOptions;
 	private JCheckBox chckbxNumberFileNames;
+	private JScrollPane paneInfo;
+	private JTextArea txtInfo;
 
 	/**
 	 * Launch the application.
@@ -84,13 +81,6 @@ public class Main extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 
-		spMain = new JScrollPane();
-		spMain.setBounds(10, 11, 414, 455);
-		contentPane.add(spMain);
-
-		txtMain = new JTextArea();
-		spMain.setViewportView(txtMain);
-
 		paneOptions = new JTabbedPane(JTabbedPane.TOP);
 		paneOptions.setBounds(0, 468, 149, 96);
 		contentPane.add(paneOptions);
@@ -109,7 +99,7 @@ public class Main extends JFrame {
 		cbFileType.setFont(new Font("Tahoma", Font.PLAIN, 15));
 		cbFileType.setModel(new DefaultComboBoxModel(new String[] { "mp4",
 				"flv", "webm", "3gp", "m4a" }));
-		//cbFileType.setToolTipText("Leave blank for no preference.");
+		// cbFileType.setToolTipText("Leave blank for no preference.");
 		tabSimple.add(cbFileType);
 
 		chckbxNumberFileNames = new JCheckBox("Number file names");
@@ -133,6 +123,27 @@ public class Main extends JFrame {
 		btnGet = new JButton("Get");
 		btnGet.setBounds(159, 501, 116, 41);
 		contentPane.add(btnGet);
+
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(10, 5, 414, 457);
+		contentPane.add(tabbedPane);
+
+		spMain = new JScrollPane();
+		tabbedPane.addTab("Input", null, spMain, null);
+
+		txtMain = new JTextArea();
+		spMain.setViewportView(txtMain);
+
+		paneInfo = new JScrollPane();
+		tabbedPane.addTab("Info", null, paneInfo, null);
+
+		txtInfo = new JTextArea();
+		txtInfo.setBackground(SystemColor.control);
+		txtInfo.setWrapStyleWord(true);
+		txtInfo.setLineWrap(true);
+		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defuct BYTubeD.\r\n\r\nCurrently a quick and dirty alpha to prove the concept. \r\nPlace in folder with youtube-dl.exe where it will keep it's files. \r\nOpen and place links in text area. \r\nChoose resolution and file type, it will get the best file up to the chosen resolution of that file type. \r\nPress get button. \r\nIf you don't have youtube-dl.exe it will prompt you to download it.\r\nIt creates a html file with the links and open them up in your default browser.\r\nA separate html is created for any errors.\r\n\r\nHaving the advanced tab open when you press the get button will search for the best audio and video file if options are checked. If both checked will return two files BASH files, one with only video and one with only audio. If you aren't sure what that means, or how to use those flies, you probably don't want to be using this option.");
+		txtInfo.setEditable(false);
+		paneInfo.setViewportView(txtInfo);
 		btnGet.addActionListener(new GetHandler());
 	}
 
@@ -187,7 +198,7 @@ public class Main extends JFrame {
 
 				} else if (paneOptions.getSelectedIndex() == 1) {
 					statment += getBest();
-					//System.out.println(statment);
+					// System.out.println(statment);
 				}
 				try {
 					Process pr = rt.exec(statment
@@ -215,30 +226,12 @@ public class Main extends JFrame {
 					}
 
 				} catch (IOException e1) {
-					int reply = JOptionPane.showConfirmDialog(null,
-							"Would you like to download it?",
-							"Missing YouTube-dl", JOptionPane.YES_NO_OPTION);
-					if (reply == JOptionPane.YES_OPTION) {
-						try {
-							URL website = new URL(
-									"https://yt-dl.org/latest/youtube-dl.exe");
-							ReadableByteChannel rbc = Channels
-									.newChannel(website.openStream());
-							FileOutputStream fos = new FileOutputStream(
-									"youtube-dl.exe");
-							fos.getChannel().transferFrom(rbc, 0,
-									Long.MAX_VALUE);
-							JOptionPane.showMessageDialog(null,
-									"Please relaunch program");
-							System.exit(0);
-						} catch (Exception e2) {
-							JOptionPane.showMessageDialog(null,
-									"Could not download, shutting down.");
-							System.exit(0);
-						}
-					} else {
-						JOptionPane.showMessageDialog(null, "Shutting down.");
-						System.exit(0);
+					try {
+						ErrorWindow dialog = new ErrorWindow();
+						dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+						dialog.setVisible(true);
+					} catch (Exception e2) {
+						e2.printStackTrace();
 					}
 					e1.printStackTrace();
 				}
@@ -406,7 +399,7 @@ public class Main extends JFrame {
 
 		private String getNumbering(int i) {
 			if (chckbxNumberFileNames.isSelected()) {
-				return (i + 1)	+ " - ";
+				return (i + 1) + " - ";
 			}
 			return "";
 		}
