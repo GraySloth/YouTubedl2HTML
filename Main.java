@@ -1,5 +1,6 @@
 package YouTubedl2HTML;
 
+import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.EventQueue;
 
@@ -20,6 +21,8 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +31,7 @@ import javax.swing.DefaultComboBoxModel;
 
 import java.awt.Font;
 
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JScrollPane;
@@ -35,6 +39,9 @@ import javax.swing.JTabbedPane;
 
 import java.awt.FlowLayout;
 import java.awt.SystemColor;
+
+import javax.swing.JProgressBar;
+import java.awt.CardLayout;
 
 public class Main extends JFrame {
 
@@ -52,6 +59,10 @@ public class Main extends JFrame {
 	private JCheckBox chckbxNumberFileNames;
 	private JScrollPane paneInfo;
 	private JTextArea txtInfo;
+	private JProgressBar progressBar;
+	private JPanel mainPane;
+	private JPanel progressPane;
+	private JTextArea progressText;
 
 	/**
 	 * Launch the application.
@@ -62,6 +73,7 @@ public class Main extends JFrame {
 				try {
 					Main frame = new Main();
 					frame.setVisible(true);
+					frame.toFront();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -79,11 +91,15 @@ public class Main extends JFrame {
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
-		contentPane.setLayout(null);
+		contentPane.setLayout(new CardLayout(0, 0));
+
+		mainPane = new JPanel();
+		contentPane.add(mainPane, "name_387393826283044");
+		mainPane.setLayout(null);
 
 		paneOptions = new JTabbedPane(JTabbedPane.TOP);
-		paneOptions.setBounds(0, 468, 149, 96);
-		contentPane.add(paneOptions);
+		paneOptions.setBounds(0, 458, 149, 96);
+		mainPane.add(paneOptions);
 
 		tabSimple = new JPanel();
 		paneOptions.addTab("Simple", null, tabSimple, null);
@@ -121,12 +137,12 @@ public class Main extends JFrame {
 		tabAdvanced.add(chckbxBestVideo);
 
 		btnGet = new JButton("Get");
-		btnGet.setBounds(159, 501, 116, 41);
-		contentPane.add(btnGet);
+		btnGet.setBounds(159, 491, 116, 41);
+		mainPane.add(btnGet);
 
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setBounds(10, 5, 414, 457);
-		contentPane.add(tabbedPane);
+		tabbedPane.setBounds(0, 0, 414, 457);
+		mainPane.add(tabbedPane);
 
 		spMain = new JScrollPane();
 		tabbedPane.addTab("Input", null, spMain, null);
@@ -144,7 +160,40 @@ public class Main extends JFrame {
 		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defuct BYTubeD.\r\n\r\nCurrently a quick and dirty alpha to prove the concept. \r\nPlace in folder with youtube-dl.exe where it will keep it's files. \r\nOpen and place links in text area. \r\nChoose resolution and file type, it will get the best file up to the chosen resolution of that file type. \r\nPress get button. \r\nIf you don't have youtube-dl.exe it will prompt you to download it.\r\nIt creates a html file with the links and open them up in your default browser.\r\nA separate html is created for any errors.\r\n\r\nHaving the advanced tab open when you press the get button will search for the best audio and video file if options are checked. If both checked will return two files BASH files, one with only video and one with only audio. If you aren't sure what that means, or how to use those flies, you probably don't want to be using this option.");
 		txtInfo.setEditable(false);
 		paneInfo.setViewportView(txtInfo);
+
+		progressPane = new JPanel();
+		contentPane.add(progressPane, "name_387393847698746");
+		progressPane.setLayout(new BorderLayout(0, 0));
+
+		progressBar = new JProgressBar();
+		progressPane.add(progressBar, BorderLayout.SOUTH);
+		progressBar.setStringPainted(true);
+
+		progressText = new JTextArea();
+		progressText.setFont(new Font("Monospaced", Font.PLAIN, 16));
+		progressText.setEditable(false);
+		progressText.setLineWrap(true);
+		progressText.setWrapStyleWord(true);
+		progressPane.add(progressText, BorderLayout.CENTER);
 		btnGet.addActionListener(new GetHandler());
+
+		SetFocus();
+	}
+
+	private void SetFocus() {
+		new Thread() {
+			public void run() {
+				while (!txtMain.hasFocus()) {
+					txtMain.requestFocus();
+					 try {
+						sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					};
+				}
+			}
+		}.start();
 	}
 
 	private String Date() {
@@ -176,67 +225,115 @@ public class Main extends JFrame {
 	}
 
 	class GetHandler implements ActionListener {
+		final ArrayList<ArrayList<String>> matrix = new ArrayList<ArrayList<String>>();
+		final ArrayList<String[]> errorMatrix = new ArrayList<String[]>();
+
 		public void actionPerformed(ActionEvent e) {
 
-			String[] text = txtMain.getText().split("\n");
+			progressBar.setValue(0);
+			progressBar.setBorder(BorderFactory
+					.createTitledBorder("Fechting links: "));
+			progressText.setText("");
+			matrix.clear();
+			errorMatrix.clear();
 
-			ArrayList<ArrayList<String>> matrix = new ArrayList<ArrayList<String>>();
-			ArrayList<String[]> errorMatrix = new ArrayList<String[]>();
-			String htmlText;
+			CardLayout cl = (CardLayout) (contentPane.getLayout());
+			cl.last(contentPane);
+
+			String[] text = txtMain.getText().split("\n");
 
 			for (int i = 0; i < text.length; i++) {
 				matrix.add(new ArrayList<String>());
 				matrix.get(i).add(text[i].trim());
 			}
 
-			for (int i = 0; i < matrix.size(); i++) {
-				Runtime rt = Runtime.getRuntime();
-				String statment = "youtube-dl.exe --get-filename --get-url --get-format -f \"";
-				if (paneOptions.getSelectedIndex() == 0) {
-					statment += cbFileType.getSelectedItem() + "/[height"
-							+ "<=" + cbResolution.getSelectedItem() + "]";
+			// setContentPane(loadingPane);
+			progressBar.setMaximum(matrix.size());
+			new Thread() {
 
-				} else if (paneOptions.getSelectedIndex() == 1) {
-					statment += getBest();
-					// System.out.println(statment);
-				}
-				try {
-					Process pr = rt.exec(statment
-							+ "\" -o \"%(title)s.%(ext)s\" "
-							+ matrix.get(i).toArray()[0]
-							+ " --restrict-filenames");
-					BufferedReader output = getOutput(pr);
-					BufferedReader error = getError(pr);
-					String ligne = "";
+				public void run() {
+					for (int i = 0; i < matrix.size(); i++) {
+						boolean isError = false;
+						Runtime rt = Runtime.getRuntime();
+						String statment = "youtube-dl.exe --get-filename --get-url --get-format -f \"";
+						if (paneOptions.getSelectedIndex() == 0) {
+							statment += cbFileType.getSelectedItem()
+									+ "/[height" + "<="
+									+ cbResolution.getSelectedItem() + "]";
 
-					while ((ligne = output.readLine()) != null) {
-						matrix.get(i).add(ligne);
-					}
-
-					if ((ligne = error.readLine()) != null) {
-						String[] errorArray = new String[2];
-						errorArray[1] = ligne;
-						while ((ligne = error.readLine()) != null) {
-							System.out.println(ligne);
+						} else if (paneOptions.getSelectedIndex() == 1) {
+							statment += getBest();
+							// System.out.println(statment);
 						}
-						errorArray[0] = matrix.get(i).get(0);
-						errorMatrix.add(errorArray);
-						matrix.remove(i);
-						i--;
-					}
+						try {
+							Process pr = rt.exec(statment
+									+ "\" -o \"%(title)s.%(ext)s\" "
+									+ matrix.get(i).toArray()[0]
+									+ " --restrict-filenames");
+							BufferedReader output = getOutput(pr);
+							BufferedReader error = getError(pr);
+							String ligne = "";
 
-				} catch (IOException e1) {
-					try {
-						ErrorWindow dialog = new ErrorWindow();
-						dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-						dialog.setVisible(true);
-					} catch (Exception e2) {
-						e2.printStackTrace();
+							while ((ligne = output.readLine()) != null) {
+								matrix.get(i).add(ligne);
+							}
+
+							if ((ligne = error.readLine()) != null) {
+								String[] errorArray = new String[2];
+								errorArray[1] = ligne;
+								while ((ligne = error.readLine()) != null) {
+									System.out.println(ligne);
+								}
+								errorArray[0] = matrix.get(i).get(0);
+								errorMatrix.add(errorArray);
+								matrix.remove(i);
+								i--;
+								isError = true;
+							}
+
+						} catch (IOException e1) {
+							try {
+								ErrorWindow dialog = new ErrorWindow();
+								dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+								dialog.setVisible(true);
+								CardLayout cl = (CardLayout) (contentPane.getLayout());
+								cl.first(contentPane);
+							} catch (Exception e2) {
+								e2.printStackTrace();
+							}
+							e1.printStackTrace();
+						}
+
+						if (isError) {
+							progressText
+									.append("Error with: ["
+											+ errorMatrix.get(errorMatrix
+													.size() - 1)[0] + "]\n\n");
+						} else {
+							int code = 2;
+							if (paneOptions.getSelectedIndex() == 1
+									&& chckbxBestAudio.isSelected() == chckbxBestVideo
+											.isSelected()) {
+								code = 3;
+							}
+							progressText.append("Request for ["
+									+ matrix.get(i).get(code).replace("_", " ")
+									+ "] has been successfully processed.\n\n");
+						}
+						progressBar.setValue(i + 1);
+						progressBar.setBorder(BorderFactory
+								.createTitledBorder("Fetching links: "
+										+ (i + 1) + "/" + matrix.size()));
+						LockSupport.parkNanos(TimeUnit.MILLISECONDS
+								.toNanos(200));
 					}
-					e1.printStackTrace();
+					printHTML();
 				}
-			}
+			}.start();
+		}
 
+		private void printHTML() {
+			String htmlText;
 			if (matrix.size() > 0) {
 
 				htmlText = "<!DOCTYPE html>"
@@ -395,6 +492,8 @@ public class Main extends JFrame {
 				writeToFile("ytdl-Error.html", htmlText);
 
 			}
+			CardLayout cl = (CardLayout) (contentPane.getLayout());
+			cl.first(contentPane);
 		}
 
 		private String getNumbering(int i) {
