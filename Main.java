@@ -7,6 +7,7 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.Document;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
 
@@ -41,9 +42,30 @@ import java.awt.FlowLayout;
 import java.awt.SystemColor;
 
 import javax.swing.JProgressBar;
+
 import java.awt.CardLayout;
 
+import javax.swing.JToggleButton;
+import java.awt.Panel;
+import javax.swing.BoxLayout;
+
 public class Main extends JFrame {
+
+	public final static String HTML_PAGE_STYLE = "\t\t <style>\n"
+			+ "\t\t\t body      { font-family:Georgia,Ubuntu,Times,Sans; text-align:justify }\n"
+			+ "\t\t\t table     { border-collapse:collapse; margin-left:auto; margin-right:auto }\n"
+			+ "\t\t\t .green    { color:#006600; }\n"
+			+ "\t\t\t .gray     { color:#808080; }\n"
+			+ "\t\t\t .red      { color:#FF0000; }\n"
+			+ "\t\t\t .pink     { color:#FF00C0; }\n"
+			+ "\t\t\t .purple   { color:#C000FF; }\n"
+			+ "\t\t\t .ruby     { color:#C00000; }\n"
+			+ "\t\t\t .lightblue{ color:#4480FF; }\n"
+			+ "\t\t\t .center   { text-align:center; }\n"
+			+ "\t\t\t .fullwidth{ width:100%; }\n"
+			+ "\t\t\t .centerdiv{ margin:auto; }\n"
+			+ "\t\t\t .pad20    { padding:20px }\n" + "\t\t </style>\n";
+	private volatile boolean canceled = false;
 
 	private JPanel contentPane;
 	private JTextArea txtMain;
@@ -63,6 +85,10 @@ public class Main extends JFrame {
 	private JPanel mainPane;
 	private JPanel progressPane;
 	private JTextArea progressText;
+	private JScrollPane spProgress;
+	private Panel progressTool;
+	private JButton btnCancel;
+	private Panel panelCancel;
 
 	/**
 	 * Launch the application.
@@ -118,7 +144,7 @@ public class Main extends JFrame {
 		// cbFileType.setToolTipText("Leave blank for no preference.");
 		tabSimple.add(cbFileType);
 
-		chckbxNumberFileNames = new JCheckBox("Number file names");
+		chckbxNumberFileNames = new JCheckBox("Numbered file names");
 		chckbxNumberFileNames.setSelected(true);
 		tabSimple.add(chckbxNumberFileNames);
 
@@ -137,6 +163,7 @@ public class Main extends JFrame {
 		tabAdvanced.add(chckbxBestVideo);
 
 		btnGet = new JButton("Get");
+		btnGet.addActionListener(new GetHandler());
 		btnGet.setBounds(159, 491, 116, 41);
 		mainPane.add(btnGet);
 
@@ -157,7 +184,22 @@ public class Main extends JFrame {
 		txtInfo.setBackground(SystemColor.control);
 		txtInfo.setWrapStyleWord(true);
 		txtInfo.setLineWrap(true);
-		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defuct BYTubeD.\r\n\r\nCurrently a quick and dirty alpha to prove the concept. \r\nPlace in folder with youtube-dl.exe where it will keep it's files. \r\nOpen and place links in text area. \r\nChoose resolution and file type, it will get the best file up to the chosen resolution of that file type. \r\nPress get button. \r\nIf you don't have youtube-dl.exe it will prompt you to download it.\r\nIt creates a html file with the links and open them up in your default browser.\r\nA separate html is created for any errors.\r\n\r\nHaving the advanced tab open when you press the get button will search for the best audio and video file if options are checked. If both checked will return two files BASH files, one with only video and one with only audio. If you aren't sure what that means, or how to use those flies, you probably don't want to be using this option.");
+		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defuct BYTubeD\n"
+				+ "\n"
+				+ "Not particularly complex or flexible, just what I need for my everyday browsing habits.\n"
+				+ "Place in  folder with youtube-dl.exe where it will keep it's files. \n"
+				+ "Open and place videoe it will keep it's files. \n"
+				+ "Open and place links in text area. \n"
+				+ "Choose resolution and file type, it will get the best file up to the chosen resolution of that file type. \n"
+				+ "Press get button. \n"
+				+ "If you don't have youtube-dl.exe it will prompt you to download it.\n"
+				+ "It creates a html file with the links and open them up in your default browser.\n"
+				+ "A separate html is created for any errors.\n"
+				+ "\n"
+				+ "Having the advanced tab open when you press the get button will search for the best audio and video file if options are checked. \n"
+				+ "If both checked will return two files BASH files, one with only video and one with only audio. \n"
+				+ "If you aren't sure what that means, or how to use those flies, you probably don't want to be using this option.");
+
 		txtInfo.setEditable(false);
 		paneInfo.setViewportView(txtInfo);
 
@@ -165,19 +207,42 @@ public class Main extends JFrame {
 		contentPane.add(progressPane, "name_387393847698746");
 		progressPane.setLayout(new BorderLayout(0, 0));
 
-		progressBar = new JProgressBar();
-		progressPane.add(progressBar, BorderLayout.SOUTH);
-		progressBar.setStringPainted(true);
+		spProgress = new JScrollPane();
+		progressPane.add(spProgress, BorderLayout.CENTER);
 
 		progressText = new JTextArea();
+
+		spProgress.setViewportView(progressText);
 		progressText.setFont(new Font("Monospaced", Font.PLAIN, 16));
 		progressText.setEditable(false);
 		progressText.setLineWrap(true);
 		progressText.setWrapStyleWord(true);
-		progressPane.add(progressText, BorderLayout.CENTER);
-		btnGet.addActionListener(new GetHandler());
+
+		progressTool = new Panel();
+		progressPane.add(progressTool, BorderLayout.SOUTH);
+		progressTool.setLayout(new BorderLayout(0, 0));
+
+		progressBar = new JProgressBar();
+		progressTool.add(progressBar, BorderLayout.SOUTH);
+		progressBar.setStringPainted(true);
+
+		panelCancel = new Panel();
+		progressTool.add(panelCancel, BorderLayout.NORTH);
+
+		btnCancel = new JButton("Cancel");
+		btnCancel.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				((CardLayout) contentPane.getLayout()).first(contentPane);
+				canceled = true;
+			}
+		});
+		panelCancel.add(btnCancel);
 
 		SetFocus();
+	}
+
+	private void ontop(boolean state) {
+		this.setAlwaysOnTop(state);
 	}
 
 	private void SetFocus() {
@@ -185,12 +250,13 @@ public class Main extends JFrame {
 			public void run() {
 				while (!txtMain.hasFocus()) {
 					txtMain.requestFocus();
-					 try {
+					try {
 						sleep(100);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					};
+					}
+					;
 				}
 			}
 		}.start();
@@ -240,7 +306,7 @@ public class Main extends JFrame {
 			CardLayout cl = (CardLayout) (contentPane.getLayout());
 			cl.last(contentPane);
 
-			String[] text = txtMain.getText().split("\n");
+			String[] text = CleanInput(txtMain.getText().split("\n"));
 
 			for (int i = 0; i < text.length; i++) {
 				matrix.add(new ArrayList<String>());
@@ -252,6 +318,7 @@ public class Main extends JFrame {
 			new Thread() {
 
 				public void run() {
+
 					for (int i = 0; i < matrix.size(); i++) {
 						boolean isError = false;
 						Runtime rt = Runtime.getRuntime();
@@ -296,7 +363,8 @@ public class Main extends JFrame {
 								ErrorWindow dialog = new ErrorWindow();
 								dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 								dialog.setVisible(true);
-								CardLayout cl = (CardLayout) (contentPane.getLayout());
+								CardLayout cl = (CardLayout) (contentPane
+										.getLayout());
 								cl.first(contentPane);
 							} catch (Exception e2) {
 								e2.printStackTrace();
@@ -320,174 +388,152 @@ public class Main extends JFrame {
 									+ matrix.get(i).get(code).replace("_", " ")
 									+ "] has been successfully processed.\n\n");
 						}
+						Document d = progressText.getDocument();
+						progressText.select(d.getLength(), d.getLength());
 						progressBar.setValue(i + 1);
 						progressBar.setBorder(BorderFactory
 								.createTitledBorder("Fetching links: "
 										+ (i + 1) + "/" + matrix.size()));
 						LockSupport.parkNanos(TimeUnit.MILLISECONDS
 								.toNanos(200));
+						if (canceled) {
+							canceled = false;
+							Thread.currentThread().interrupt();
+							return;
+						}
 					}
 					printHTML();
+
 				}
 			}.start();
+		}
+
+		private String[] CleanInput(String[] text) {
+			ArrayList<String> newText = new ArrayList<String>();
+			for (String string : text) {
+				if (string.trim().length() > 0
+						&& !string.toLowerCase().contains("com/user/")
+						&& !string.toLowerCase().contains("com/channel/")
+						&& !string.toLowerCase().contains("com/playlist")) {
+					newText.add(string);
+				}
+			}
+
+			return newText.toArray(new String[newText.size()]);
 		}
 
 		private void printHTML() {
 			String htmlText;
 			if (matrix.size() > 0) {
 
-				htmlText = "<!DOCTYPE html>"
-						+ "\n<html>"
-						+ "\n<head>"
-						+ "\n<title>YouTube-DL Generated Links</title>"
-						+ "\n<meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\">"
-						+ "\n<style>"
-						+ "\nbody      { font-family:Georgia,Ubuntu,Times,Sans; text-align:justify }"
-						+ "\ntable     { border-collapse:collapse; margin-left:auto; margin-right:auto }"
-						+ "\n.green    { color:#006600; }"
-						+ "\n.gray     { color:#808080; }"
-						+ "\n.red      { color:#FF0000; }"
-						+ "\n.pink     { color:#FF00C0; }"
-						+ "\n.purple   { color:#C000FF; }"
-						+ "\n.ruby     { color:#C00000; }"
-						+ "\n.lightblue{ color:#4480FF; }"
-						+ "\n.center   { text-align:center; }"
-						+ "\n.fullwidth{ width:100%; }"
-						+ "\n.centerdiv{ margin:auto; }"
-						+ "\n.pad20    { padding:20px }"
-						+ "\n</style>"
-						+ "\n</head>"
-						+ "\n<body>"
-						+ "\n<br/>"
-						+ "\n<div class=\"center\">"
-						+ "\n<h2 class=\"green\"> YouTube-DL has generated "
+				htmlText = "<!DOCTYPE html>\n"
+						+ " <html>\n"
+						+ "\t <head>\n"
+						+ "\t\t <title>YouTube-DL Generated Links</title>\n"
+						+ "\t\t <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\">\n"
+						+ HTML_PAGE_STYLE
+						+ "\t </head>\n"
+						+ "\t <body>\n"
+						+ "\t\t <br/>\n"
+						+ "\t\t <div class=\"center\">\n"
+						+ "\t\t\t <h2 class=\"green\"> YouTube-DL has generated "
 						+ matrix.size()
-						+ "\n downloadable video links.</h2>"
-						+ "\nInvoke a download manager, such as <b>DownThemAll</b>, on this page to download these videos."
-						+ "\n<br/>"
-						+ "\n<br/><hr size=\"1\" width=\"80%\"/><br/>"
-						+ "\n<span class=\"gray\">"
-						+ "\nIf you do not have a download manger, you can click on the links below and download the videos one by one.<br/> "
-						+ "\nBut batch download becomes far easier if you have a download manager like DownThemAll.<br/>"
-						+ "\n</span>"
-						+ "</div>"
-						+ "<p/>"
-						+ "<div id=\"links\">"
-						+ "\n<table border=\"1\" cellpadding=\"5px\">"
-						+ "\n<tr><th>S.No</th><th>Title</th><th>Quality</th></tr>";
+						+ " downloadable video links.</h2>\n"
+						+ "\t\t\t Invoke a download manager, such as <b>DownThemAll</b>, on this page to download these videos.\n"
+						+ "\t\t\t <br/>\n"
+						+ "\t\t\t <br/><hr size=\"1\" width=\"80%\"/><br/>\n"
+						+ "\t\t\t <span class=\"gray\">\n"
+						+ "\t\t\t\t If you do not have a download manger, you can click on the links below and download the videos one by one.<br/> \n"
+						+ "\t\t\t\t But batch download becomes far easier if you have a download manager like DownThemAll.<br/>\n"
+						+ "\t\t\t </span>\n"
+						+ "\t\t </div>\n"
+						+ "\t\t <p/>\n"
+						+ "\t\t <div id=\"links\">\n"
+						+ "\t\t\t <table border=\"1\" cellpadding=\"5px\">\n"
+						+ "\t\t\t\t <tr><th>S.No</th><th>Title</th><th>Quality</th></tr>\n";
 
 				for (int i = 0; i < matrix.size(); i++) {
+					String[] url = null;
+					String name = null;
+					String format = null;
+
 					if (paneOptions.getSelectedIndex() == 1
 							&& chckbxBestAudio.isSelected() == chckbxBestVideo
 									.isSelected()) {
-
-						htmlText += "\n<tr>"
-								+ "\n<td>"
-								+ (i + 1)
-								+ "</td>"
-								+ "\n<td>"
-								+ "\n<p><a href=\""
-								+ matrix.get(i).get(1).toString()
-								+ "\">"
-								+ matrix.get(i).get(3).toString()
-										.replace("_", " ")
-								+ "</a></p>\n"
-								+ "\n<p><a href=\""
-								+ matrix.get(i).get(2).toString()
-								+ "\">"
-								+ matrix.get(i)
-										.get(3)
-										.toString()
-										.replace("_", " ")
-										.replaceFirst(
-												"\\.(mp4|m4a|flv|3gp|webm)$",
-												"") + ".m4a</a></p>"
-								+ "\n</td>" + "\n<td><span class='"
-								+ getColor(matrix.get(i).get(4).toString())
-								+ "'>" + matrix.get(i).get(4).toString()
-								+ "</span></td>" + "\n</tr>";
-
+						url = new String[2];
+						url[0] = matrix.get(i).get(1);
+						url[1] = matrix.get(i).get(2);
+						name = matrix.get(i).get(3);
+						format = matrix.get(i).get(4);
 					} else {
-						htmlText += "\n<tr><td>"
-								+ (i + 1)
-								+ "</td><td><a href=\""
-								+ matrix.get(i).get(1).toString()
-								+ "&; codecs&title="
-								+ getNumbering(i)
-								+ matrix.get(i)
-										.get(2)
-										.toString()
-										.replace("_", " ")
-										.replaceFirst(
-												"\\.(mp4|m4a|flv|3gp|webm)$",
-												"")
-								+ "\">"
-								+ matrix.get(i).get(2).toString()
-										.replace("_", " ")
-								+ "</a></td><td><span class='"
-								+ getColor(matrix.get(i).get(3).toString())
-								+ "'>" + matrix.get(i).get(3).toString()
-								+ "</span></td></tr>";
+						url = new String[1];
+						url[0] = matrix.get(i).get(1);
+						name = matrix.get(i).get(2);
+						format = matrix.get(i).get(3);
 					}
+
+					htmlText += "\t\t\t\t <tr><td>"
+							+ (i + 1)
+							+ "</td><td><a href=\""
+							+ url[0]
+							+ "&; codecs&title="
+							+ getNumbering(i)
+							+ name.replace("_", " ").replaceFirst(
+									"\\.(mp4|m4a|flv|3gp|webm)$", "") + "\">"
+							+ name.replace("_", " ") + "</a>";
+
+					for (int j = 1; j < url.length; j++) {
+						htmlText += "\t\t\t\t\t<p><a href=\""
+								+ url[j].toString()
+								+ "\">"
+								+ name.replace("_", " ").replaceFirst(
+										"\\.(mp4|m4a|flv|3gp|webm)$", "")
+								+ ".m4a</a>";
+					}
+
+					htmlText += "</td><td><span class='" + getColor(format)
+							+ "'>" + format + "</td></tr>\n";
 
 				}
 
-				htmlText += "</table>"
-						+ "</div>"
-						+ "\n<br/><div class='center gray'>Link Generation Time: "
+				htmlText += "\t\t\t </table>\n"
+						+ "\t\t </div>\n"
+						+ "\t\t <br/><div class='center gray'>"
 						+ Date()
-						+ "<br/>Link Expiry Time: "
-						+ "~6 Hours"
-						+ "\n</div><br/><hr size=\"1\" width=\"80%\"/><br/><br/>"
-						+ "\n</body>" + "</html>";
+						+ "<br/>Link Expiry Time: ~6 Hours</div><br/><hr size=\"1\" width=\"80%\"/><br/><br/>\n"
+						+ "\t </body>\n" + " </html>";
 
 				writeToFile("ytdl.html", htmlText);
 			}
 
 			if (errorMatrix.size() > 0) {
-				htmlText = "<!DOCTYPE html>"
-						+ "\n<html>"
-						+ "\n<head>"
-						+ "\n<title>YouTube-DL Generated Links</title>"
-						+ "\n<meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\">"
-						+ "\n<style>"
-						+ "\nbody      { font-family:Georgia,Ubuntu,Times,Sans; text-align:justify }"
-						+ "\ntable     { border-collapse:collapse; margin-left:auto; margin-right:auto }"
-						+ "\n.green    { color:#006600; }"
-						+ "\n.gray     { color:#808080; }"
-						+ "\n.red      { color:#FF0000; }"
-						+ "\n.pink     { color:#FF00C0; }"
-						+ "\n.purple   { color:#C000FF; }"
-						+ "\n.ruby     { color:#C00000; }"
-						+ "\n.lightblue{ color:#4480FF; }"
-						+ "\n.center   { text-align:center; }"
-						+ "\n.fullwidth{ width:100%; }"
-						+ "\n.centerdiv{ margin:auto; }"
-						+ "\n.pad20    { padding:20px }"
-						+ "\n</style>"
-						+ "\n</head>"
-						+ "\n<body>"
-						+ "\n<div class=\"fullwidth center gray\">"
-						+ "\n<b>YouTube-DL Invocation Timestamp:</b> "
+				htmlText = " <!DOCTYPE html>\n"
+						+ " <html>\n"
+						+ "\t <head>\n"
+						+ "\t\t <title>YouTube-DL Failed Links</title>\n"
+						+ "\t\t <meta http-equiv=\"content-type\" content=\"text/html;charset=UTF-8\">\n"
+						+ HTML_PAGE_STYLE
+						+ "\t </head>\n"
+						+ "\t <body>\n"
+						+ "\t\t <div class=\"fullwidth center gray\">\n"
+						+ "\t\t\t <b>YouTube-DL Invocation Timestamp:</b>"
 						+ Date()
-						+ "<br/>"
-						// +
-						// "\n<b>Source page:</b> <a href=\"Download page link\">Download page</a>"
-						+ "\n</div>"
-						+ "\n<br/><h2 class=\"red center\">Failed to generate download links for the following videos.</h2>"
-						+ "\n<div id=\"failed_links\" class=\"pad20\">"
-						+ "\n<table border=\"1\" cellpadding=\"5px\" style=\"border-collapse:collapse;margin-left:auto;margin-right:auto\">"
-						+ "\n<tr><th>S.No</th><th>Title</th><th>Reason for failure</th></tr>";
+						+ "<br/>\n"
+						/* "\t\t\t <b>Source page:</b> <a href=\"PAGE LINK\">PAGE TITLE</a>\n" */
+						+ "\t\t </div>\n"
+						+ "\t\t <br/><h2 class=\"red center\">Failed to generate download links for the following videos.</h2>\n"
+						+ "\t\t <div id=\"failed_links\" class=\"pad20\">\n"
+						+ "\t\t\t <table border=\"1\" cellpadding=\"5px\" style=\"border-collapse:collapse;margin-left:auto;margin-right:auto\">\n"
+						+ "\t\t\t\t <tr><th>S.No</th><th>Title</th><th>Reason for failure</th></tr>\n";
 
 				for (int j = 0; j < errorMatrix.size(); j++) {
-					htmlText += "\n<tr><td>" + (j + 1) + "</td><td>"
+					htmlText += "\t\t\t<tr><td>" + (j + 1) + "</td><td>"
 							+ errorMatrix.get(j)[0] + "</td><td>"
-							+ errorMatrix.get(j)[1] + "</td></tr>";
-
+							+ errorMatrix.get(j)[1] + "</td></tr>\n";
 				}
 
-				htmlText += "\n</table>" + "\n</div>" + "\n</body>"
-						+ "\n</html>";
+				htmlText += "\t\t</table>\n" + "\t</div>\n" + "</body>\n"
+						+ "</html>";
 
 				writeToFile("ytdl-Error.html", htmlText);
 
