@@ -46,7 +46,9 @@ import javax.swing.JProgressBar;
 import java.awt.CardLayout;
 
 import javax.swing.JToggleButton;
+
 import java.awt.Panel;
+
 import javax.swing.BoxLayout;
 
 public class Main extends JFrame {
@@ -184,11 +186,12 @@ public class Main extends JFrame {
 		txtInfo.setBackground(SystemColor.control);
 		txtInfo.setWrapStyleWord(true);
 		txtInfo.setLineWrap(true);
-		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defuct BYTubeD\n"
+		txtInfo.setText("A java gui that uses youtube-dl to replace the some of the basic functionality of the defunct BYTubeD\n"
 				+ "\n"
 				+ "Not particularly complex or flexible, just what I need for my everyday browsing habits.\n"
 				+ "Place in  folder with youtube-dl.exe where it will keep it's files. \n"
-				+ "Open and place videoe it will keep it's files. \n"
+				+ "Open and place video links in text area. \n"
+				+ "Some good tools for grabbing links are Easy Copy and LinkSidebar.\n"
 				+ "Open and place links in text area. \n"
 				+ "Choose resolution and file type, it will get the best file up to the chosen resolution of that file type. \n"
 				+ "Press get button. \n"
@@ -198,7 +201,7 @@ public class Main extends JFrame {
 				+ "\n"
 				+ "Having the advanced tab open when you press the get button will search for the best audio and video file if options are checked. \n"
 				+ "If both checked will return two files BASH files, one with only video and one with only audio. \n"
-				+ "If you aren't sure what that means, or how to use those flies, you probably don't want to be using this option.");
+				+ "If you aren't sure what that means, or how to use those files, you probably don't want to be using this option.");
 
 		txtInfo.setEditable(false);
 		paneInfo.setViewportView(txtInfo);
@@ -415,7 +418,21 @@ public class Main extends JFrame {
 						&& !string.toLowerCase().contains("com/user/")
 						&& !string.toLowerCase().contains("com/channel/")
 						&& !string.toLowerCase().contains("com/playlist")) {
+
 					newText.add(string);
+				}
+			}
+
+			if (newText.size() > 0) {
+				int counter = 1;
+				for (int first = 0; first < newText.size(); first++) {
+					for (int second = counter; second < newText.size(); second++) {
+						if (newText.get(first).equals(newText.get(second))) {
+							newText.remove(second);
+							second--;
+						}
+					}
+					counter++;
 				}
 			}
 
@@ -524,7 +541,7 @@ public class Main extends JFrame {
 						+ "\t\t <br/><h2 class=\"red center\">Failed to generate download links for the following videos.</h2>\n"
 						+ "\t\t <div id=\"failed_links\" class=\"pad20\">\n"
 						+ "\t\t\t <table border=\"1\" cellpadding=\"5px\" style=\"border-collapse:collapse;margin-left:auto;margin-right:auto\">\n"
-						+ "\t\t\t\t <tr><th>S.No</th><th>Title</th><th>Reason for failure</th></tr>\n";
+						+ "\t\t\t\t <tr><th>S.No</th><th>Url</th><th>Reason for failure</th></tr>\n";
 
 				for (int j = 0; j < errorMatrix.size(); j++) {
 					htmlText += "\t\t\t<tr><td>" + (j + 1) + "</td><td>"
