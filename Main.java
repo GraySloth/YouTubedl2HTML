@@ -321,14 +321,38 @@ public class Main extends JFrame {
 			new Thread() {
 
 				public void run() {
+					Runtime rt = Runtime.getRuntime();
+					try {
+						Process pr = rt.exec("youtube-dl.exe -U");
+						BufferedReader output = getOutput(pr);
+						BufferedReader error = getError(pr);
+						String ligne = "";
+
+						while ((ligne = output.readLine()) != null) {
+							progressText.append(ligne + "\n\n");
+						}
+
+					} catch (IOException e1) {
+						try {
+							ErrorWindow dialog = new ErrorWindow();
+							dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+							dialog.setVisible(true);
+							CardLayout cl = (CardLayout) (contentPane
+									.getLayout());
+							cl.first(contentPane);
+						} catch (Exception e2) {
+							e2.printStackTrace();
+						}
+						e1.printStackTrace();
+					}
 
 					for (int i = 0; i < matrix.size(); i++) {
 						boolean isError = false;
-						Runtime rt = Runtime.getRuntime();
+
 						String statment = "youtube-dl.exe --get-filename --get-url --get-format -f \"";
 						if (paneOptions.getSelectedIndex() == 0) {
 							statment += cbFileType.getSelectedItem()
-									+ "/[height" + "<="
+									+ "[height" + "<="
 									+ cbResolution.getSelectedItem() + "]";
 
 						} else if (paneOptions.getSelectedIndex() == 1) {
@@ -336,6 +360,12 @@ public class Main extends JFrame {
 							// System.out.println(statment);
 						}
 						try {
+							/*
+							 * System.out.println(statment +
+							 * "\" -o \"%(title)s.%(ext)s\" " +
+							 * matrix.get(i).toArray()[0] +
+							 * " --restrict-filenames");
+							 */
 							Process pr = rt.exec(statment
 									+ "\" -o \"%(title)s.%(ext)s\" "
 									+ matrix.get(i).toArray()[0]
@@ -494,7 +524,8 @@ public class Main extends JFrame {
 							+ "</td><td><a href=\""
 							+ url[0]
 							+ "&; codecs&title="
-							+ getNumbering(i)
+							+ getNumbering(i,
+									(int) (Math.log10(matrix.size()) + 1))
 							+ name.replace("_", " ").replaceFirst(
 									"\\.(mp4|m4a|flv|3gp|webm)$", "") + "\">"
 							+ name.replace("_", " ") + "</a>";
@@ -559,9 +590,9 @@ public class Main extends JFrame {
 			cl.first(contentPane);
 		}
 
-		private String getNumbering(int i) {
+		private String getNumbering(int i, int digits) {
 			if (chckbxNumberFileNames.isSelected()) {
-				return (i + 1) + " - ";
+				return String.format("%0" + digits + "d", (i + 1)) + " - ";
 			}
 			return "";
 		}
